@@ -192,26 +192,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             ) : (
               <>
                 <span className="material-symbols-outlined text-sm">lock_open</span>
-                <span>{isSignUp ? 'Register & Stream' : 'Sign In Now'}</span>
+                <span>Sign In Now</span>
               </>
             )}
           </button>
         </form>
-
-        {/* Toggle Mode */}
-        <div className="pt-2 border-t border-white/10 text-center text-xs text-white/60">
-          {isSignUp ? 'Already have a CineVerse account?' : "Don't have an account yet?"}{' '}
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError(null);
-            }}
-            className="text-[#ff3e00] font-bold hover:underline cursor-pointer ml-1"
-          >
-            {isSignUp ? 'Sign In' : 'Create Free Account'}
-          </button>
-        </div>
       </div>
     </div>
   );
