@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ViewMode, Movie } from './types';
 import { MOVIES_DATA } from './data/mockData';
 import { Navbar } from './components/Navbar';
@@ -13,13 +13,25 @@ import { ConsoleUsers } from './components/ConsoleUsers';
 import { WatchPartyDrawer } from './components/WatchPartyDrawer';
 import { AISearchModal } from './components/AISearchModal';
 
-import { useEffect } from 'react';
+import { UserDashboardView } from './components/UserDashboardView';
 import { AuthModal } from './components/AuthModal';
 import { UserProfile, fetchMoviesApi } from './services/api';
+import { UserSubscription } from './types';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewMode>('home');
   const [moviesList, setMoviesList] = useState<Movie[]>([]);
+  const [registeredUsers, setRegisteredUsers] = useState<UserSubscription[]>([
+    {
+      id: 'u-admin-master',
+      name: 'Tharun Reddy',
+      email: 'vallapureddytharunreddy6281@gmail.com',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+      joinDate: 'Aug 2026',
+      tier: 'CineVerse Master Admin',
+      status: 'Active'
+    }
+  ]);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [activePlayingMovie, setActivePlayingMovie] = useState<Movie | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,6 +61,25 @@ export const App: React.FC = () => {
     if (!selectedMovie) {
       setSelectedMovie(newMovie);
     }
+  };
+
+  const handleUserAuthSuccess = (user: UserProfile) => {
+    setUserProfile(user);
+    localStorage.setItem('cineverse_user', JSON.stringify(user));
+    
+    // Add user to registered users list if not present
+    setRegisteredUsers(prev => {
+      if (prev.some(u => u.email.toLowerCase() === user.email.toLowerCase())) return prev;
+      return [...prev, {
+        id: user.id || `usr-${Date.now()}`,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        joinDate: 'Aug 2026',
+        tier: user.tier || 'CineVerse VIP',
+        status: 'Active'
+      }];
+    });
   };
 
   const isConsoleView = currentView.startsWith('console');
@@ -109,13 +140,29 @@ export const App: React.FC = () => {
 
           {/* Console Sub-Screens */}
           <main className="flex-1 bg-[#0a0a0a] overflow-y-auto min-h-screen">
-            {currentView === 'console-overview' && <ConsoleOverview />}
+            {currentView === 'console-overview' && (
+              <ConsoleOverview moviesCount={moviesList.length} usersCount={registeredUsers.length} />
+            )}
             {currentView === 'console-cms' && <ConsoleCMS onAddMovie={handleAddMovie} />}
-            {currentView === 'console-users' && <ConsoleUsers />}
+            {currentView === 'console-users' && <ConsoleUsers users={registeredUsers} />}
           </main>
         </div>
       ) : (
         <main className="flex-1">
+          {currentView === 'user-dashboard' && userProfile && (
+            <UserDashboardView
+              user={userProfile}
+              watchlistMovies={moviesList}
+              onSelectMovie={handleSelectMovie}
+              onPlayMovie={handlePlayMovie}
+              onLogout={() => {
+                localStorage.removeItem('cineverse_user');
+                setUserProfile(null);
+                setCurrentView('home');
+              }}
+            />
+          )}
+
           {currentView === 'home' && (
             <HomeView
               onSelectMovie={handleSelectMovie}
@@ -281,10 +328,7 @@ export const App: React.FC = () => {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={(user) => {
-          setUserProfile(user);
-          localStorage.setItem('cineverse_user', JSON.stringify(user));
-        }}
+        onSuccess={handleUserAuthSuccess}
       />
     </div>
   );

@@ -154,48 +154,44 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="w-2 h-2 rounded-full bg-[#ff3e00] animate-pulse"></span>
           </button>
 
-          {/* Console / Studio Mode Switcher */}
-          <button
-            id="studio-console-mode-btn"
-            onClick={() => onNavigate(isConsole ? 'home' : 'console-overview')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all ${
-              isConsole
-                ? 'bg-white text-black font-bold uppercase tracking-wider shadow-md'
-                : 'bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10'
-            }`}
-          >
-            <span className="material-symbols-outlined text-sm">
-              {isConsole ? 'tv' : 'dashboard'}
-            </span>
-            <span className="hidden sm:inline">
-              {isConsole ? 'Consumer View' : 'Studio Console'}
-            </span>
-          </button>
-
-          {/* Notifications */}
-          <button
-            id="nav-notifications-btn"
-            className="relative p-2 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            <span className="material-symbols-outlined text-xl">notifications</span>
-            <span className="absolute top-2 right-2 w-2 h-2 bg-[#ff3e00] rounded-full"></span>
-          </button>
+          {/* Console / Studio Mode Switcher (ONLY VISIBLE TO MASTER ADMIN) */}
+          {userProfile?.email?.toLowerCase() === 'vallapureddytharunreddy6281@gmail.com' && (
+            <button
+              id="studio-console-mode-btn"
+              onClick={() => onNavigate(isConsole ? 'home' : 'console-overview')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all ${
+                isConsole
+                  ? 'bg-white text-black font-bold uppercase tracking-wider shadow-md'
+                  : 'bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10'
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">
+                {isConsole ? 'tv' : 'dashboard'}
+              </span>
+              <span className="hidden sm:inline">
+                {isConsole ? 'Consumer View' : 'Studio Console'}
+              </span>
+            </button>
+          )}
 
           {/* User Profile / Auth Sign In */}
           {userProfile ? (
             <div className="flex items-center gap-2">
               <button
                 id="nav-profile-btn"
-                onClick={onLogout}
-                className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-[#ff3e00]/50 transition-all cursor-pointer"
-                title={`Signed in as ${userProfile.name} (${userProfile.email}) - Click to Log Out`}
+                onClick={() => onNavigate('user-dashboard')}
+                className="flex items-center gap-2 p-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-all cursor-pointer"
+                title={`Signed in as ${userProfile.name} (${userProfile.email})`}
               >
                 <img
-                  src={userProfile.avatar || ADMIN_AVATAR}
+                  src={userProfile.avatar || LOGO_URL}
                   alt={userProfile.name}
-                  className="w-8 h-8 rounded-full object-cover border border-white/20"
+                  className="w-7 h-7 rounded-full object-cover border border-white/20"
                   referrerPolicy="no-referrer"
                 />
+                <span className="text-xs font-bold text-white hidden sm:inline max-w-[120px] truncate">
+                  {userProfile.name}
+                </span>
               </button>
             </div>
           ) : (
