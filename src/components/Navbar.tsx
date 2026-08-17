@@ -11,6 +11,9 @@ interface NavbarProps {
   onOpenSearchModal: () => void;
   onToggleWatchParty: () => void;
   isWatchPartyOpen: boolean;
+  onOpenAuthModal?: () => void;
+  userProfile?: any;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -20,7 +23,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSearchChange,
   onOpenSearchModal,
   onToggleWatchParty,
-  isWatchPartyOpen
+  isWatchPartyOpen,
+  onOpenAuthModal,
+  userProfile,
+  onLogout
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isConsole = currentView.startsWith('console');
@@ -175,20 +181,33 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="absolute top-2 right-2 w-2 h-2 bg-[#ff3e00] rounded-full"></span>
           </button>
 
-          {/* User Profile */}
-          <div className="relative group">
+          {/* User Profile / Auth Sign In */}
+          {userProfile ? (
+            <div className="flex items-center gap-2">
+              <button
+                id="nav-profile-btn"
+                onClick={onLogout}
+                className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-[#ff3e00]/50 transition-all cursor-pointer"
+                title={`Signed in as ${userProfile.name} (${userProfile.email}) - Click to Log Out`}
+              >
+                <img
+                  src={userProfile.avatar || ADMIN_AVATAR}
+                  alt={userProfile.name}
+                  className="w-8 h-8 rounded-full object-cover border border-white/20"
+                  referrerPolicy="no-referrer"
+                />
+              </button>
+            </div>
+          ) : (
             <button
-              id="nav-profile-btn"
-              className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-[#ff3e00]/50 transition-all cursor-pointer"
+              id="nav-sign-in-btn"
+              onClick={onOpenAuthModal}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs uppercase tracking-wider font-bold bg-white text-black hover:bg-[#ff3e00] hover:text-white transition-colors cursor-pointer shadow-md"
             >
-              <img
-                src={ADMIN_AVATAR}
-                alt="User Profile"
-                className="w-8 h-8 rounded-full object-cover border border-white/20"
-                referrerPolicy="no-referrer"
-              />
+              <span className="material-symbols-outlined text-sm">person</span>
+              <span>Sign In</span>
             </button>
-          </div>
+          )}
 
           {/* Mobile hamburger */}
           <button

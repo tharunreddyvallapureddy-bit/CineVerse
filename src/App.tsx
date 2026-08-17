@@ -13,6 +13,9 @@ import { ConsoleUsers } from './components/ConsoleUsers';
 import { WatchPartyDrawer } from './components/WatchPartyDrawer';
 import { AISearchModal } from './components/AISearchModal';
 
+import { AuthModal } from './components/AuthModal';
+import { UserProfile } from './services/api';
+
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewMode>('home');
   const [selectedMovie, setSelectedMovie] = useState<Movie>(MOVIES_DATA[0]);
@@ -20,6 +23,11 @@ export const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isWatchPartyOpen, setIsWatchPartyOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
+    const saved = localStorage.getItem('cineverse_user');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   const isConsoleView = currentView.startsWith('console');
 
@@ -59,6 +67,12 @@ export const App: React.FC = () => {
           onOpenSearchModal={() => setIsSearchModalOpen(true)}
           onToggleWatchParty={() => setIsWatchPartyOpen(!isWatchPartyOpen)}
           isWatchPartyOpen={isWatchPartyOpen}
+          onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          userProfile={userProfile}
+          onLogout={() => {
+            localStorage.removeItem('cineverse_user');
+            setUserProfile(null);
+          }}
         />
       )}
 
@@ -224,6 +238,16 @@ export const App: React.FC = () => {
         onClose={() => setIsSearchModalOpen(false)}
         onSelectMovie={handleSelectMovie}
         initialQuery={searchQuery}
+      />
+
+      {/* 6. USER AUTH MODAL */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={(user) => {
+          setUserProfile(user);
+          localStorage.setItem('cineverse_user', JSON.stringify(user));
+        }}
       />
     </div>
   );
