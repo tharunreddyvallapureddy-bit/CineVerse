@@ -13,12 +13,14 @@ import { ConsoleUsers } from './components/ConsoleUsers';
 import { WatchPartyDrawer } from './components/WatchPartyDrawer';
 import { AISearchModal } from './components/AISearchModal';
 
+import { useEffect } from 'react';
 import { AuthModal } from './components/AuthModal';
-import { UserProfile } from './services/api';
+import { UserProfile, fetchMoviesApi } from './services/api';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewMode>('home');
-  const [selectedMovie, setSelectedMovie] = useState<Movie>(MOVIES_DATA[0]);
+  const [moviesList, setMoviesList] = useState<Movie[]>([]);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [activePlayingMovie, setActivePlayingMovie] = useState<Movie | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -28,6 +30,26 @@ export const App: React.FC = () => {
     const saved = localStorage.getItem('cineverse_user');
     return saved ? JSON.parse(saved) : null;
   });
+
+  useEffect(() => {
+    async function loadCatalog() {
+      const fetched = await fetchMoviesApi();
+      if (fetched && Array.isArray(fetched)) {
+        setMoviesList(fetched);
+        if (fetched.length > 0 && !selectedMovie) {
+          setSelectedMovie(fetched[0]);
+        }
+      }
+    }
+    loadCatalog();
+  }, []);
+
+  const handleAddMovie = (newMovie: Movie) => {
+    setMoviesList(prev => [newMovie, ...prev]);
+    if (!selectedMovie) {
+      setSelectedMovie(newMovie);
+    }
+  };
 
   const isConsoleView = currentView.startsWith('console');
 
@@ -88,7 +110,7 @@ export const App: React.FC = () => {
           {/* Console Sub-Screens */}
           <main className="flex-1 bg-[#0a0a0a] overflow-y-auto min-h-screen">
             {currentView === 'console-overview' && <ConsoleOverview />}
-            {currentView === 'console-cms' && <ConsoleCMS />}
+            {currentView === 'console-cms' && <ConsoleCMS onAddMovie={handleAddMovie} />}
             {currentView === 'console-users' && <ConsoleUsers />}
           </main>
         </div>
@@ -99,6 +121,9 @@ export const App: React.FC = () => {
               onSelectMovie={handleSelectMovie}
               onPlayMovie={handlePlayMovie}
               onStartWatchParty={handleStartWatchParty}
+              movies={moviesList}
+              onOpenAuthModal={() => setIsAuthModalOpen(true)}
+              onOpenConsole={() => setCurrentView('console-cms')}
             />
           )}
 
@@ -110,31 +135,37 @@ export const App: React.FC = () => {
                   <p className="text-xs text-white/50">All 4K HDR master theatrical releases</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-                {MOVIES_DATA.map(movie => (
-                  <div
-                    key={movie.id}
-                    onClick={() => handleSelectMovie(movie)}
-                    className="group relative rounded-xl bg-[#121212] border border-white/10 hover:border-[#ff3e00]/60 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-[#ff3e00]/10 flex flex-col"
-                  >
-                    <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#0a0a0a]">
-                      <img
-                        src={movie.posterImage}
-                        alt={movie.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-[#0a0a0a]/90 backdrop-blur-md border border-[#ff3e00]/40 text-[#ff3e00] text-[11px] font-bold">
-                        {movie.matchScore}%
+              {moviesList.length === 0 ? (
+                <div className="p-8 rounded-2xl bg-[#121212] border border-white/10 text-center text-xs text-white/60">
+                  No feature films in catalog yet. Admin can upload movies from the Studio Console.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                  {moviesList.map(movie => (
+                    <div
+                      key={movie.id}
+                      onClick={() => handleSelectMovie(movie)}
+                      className="group relative rounded-xl bg-[#121212] border border-white/10 hover:border-[#ff3e00]/60 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-[#ff3e00]/10 flex flex-col"
+                    >
+                      <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#0a0a0a]">
+                        <img
+                          src={movie.posterImage}
+                          alt={movie.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-[#0a0a0a]/90 backdrop-blur-md border border-[#ff3e00]/40 text-[#ff3e00] text-[11px] font-bold">
+                          {movie.matchScore}%
+                        </div>
+                      </div>
+                      <div className="p-3">
+                        <h3 className="text-xs font-bold text-white group-hover:text-[#ff3e00] truncate transition-colors">{movie.title}</h3>
+                        <p className="text-[11px] text-white/50">{movie.year} • {movie.genres[0]}</p>
                       </div>
                     </div>
-                    <div className="p-3">
-                      <h3 className="text-xs font-bold text-white group-hover:text-[#ff3e00] truncate transition-colors">{movie.title}</h3>
-                      <p className="text-[11px] text-white/50">{movie.year} • {movie.genres[0]}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -144,32 +175,38 @@ export const App: React.FC = () => {
                 <h1 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">Original Sci-Fi Series</h1>
                 <p className="text-xs text-white/50">Multi-episode neural narratives and episodic thrillers</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {MOVIES_DATA.filter(m => m.type === 'series').concat(MOVIES_DATA[0], MOVIES_DATA[2]).map((series, idx) => (
-                  <div
-                    key={`${series.id}-${idx}`}
-                    onClick={() => handleSelectMovie(series)}
-                    className="group rounded-2xl bg-[#121212] border border-white/10 overflow-hidden cursor-pointer hover:border-[#ff3e00]/60 transition-all shadow-lg"
-                  >
-                    <div className="relative aspect-video w-full overflow-hidden">
-                      <img
-                        src={series.backdropImage}
-                        alt={series.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-transparent to-transparent"></div>
-                      <span className="absolute bottom-3 left-3 px-2.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-xs font-mono text-[#ff3e00] border border-white/10">
-                        {series.episodesInfo || 'Season 1'}
-                      </span>
+              {moviesList.filter(m => m.type === 'series').length === 0 ? (
+                <div className="p-8 rounded-2xl bg-[#121212] border border-white/10 text-center text-xs text-white/60">
+                  No original series in catalog yet. Admin can upload series from the Studio Console.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {moviesList.filter(m => m.type === 'series').map((series, idx) => (
+                    <div
+                      key={`${series.id}-${idx}`}
+                      onClick={() => handleSelectMovie(series)}
+                      className="group rounded-2xl bg-[#121212] border border-white/10 overflow-hidden cursor-pointer hover:border-[#ff3e00]/60 transition-all shadow-lg"
+                    >
+                      <div className="relative aspect-video w-full overflow-hidden">
+                        <img
+                          src={series.backdropImage}
+                          alt={series.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-transparent to-transparent"></div>
+                        <span className="absolute bottom-3 left-3 px-2.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-xs font-mono text-[#ff3e00] border border-white/10">
+                          {series.episodesInfo || 'Season 1'}
+                        </span>
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-sm font-bold text-white group-hover:text-[#ff3e00] transition-colors">{series.title}</h3>
+                        <p className="text-xs text-white/60 line-clamp-2 mt-1">{series.synopsis}</p>
+                      </div>
                     </div>
-                    <div className="p-4">
-                      <h3 className="text-sm font-bold text-white group-hover:text-[#ff3e00] transition-colors">{series.title}</h3>
-                      <p className="text-xs text-white/60 line-clamp-2 mt-1">{series.synopsis}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -181,10 +218,10 @@ export const App: React.FC = () => {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { tag: '#Cyberpunk & Neo-Noir', desc: 'Rain-slicked streets and neural memory heists', count: '14 Titles', color: 'from-[#ff3e00]/20 to-[#121212]' },
-                  { tag: '#HardSciFi & Deep Space', desc: 'Gravitational anomalies and quantum transit', count: '9 Titles', color: 'from-white/10 to-[#121212]' },
-                  { tag: '#MindBending Surrealism', desc: 'Non-linear realities and spatial geometry', count: '12 Titles', color: 'from-[#ff3e00]/15 to-[#121212]' },
-                  { tag: '#HighOctane Stunts', desc: 'Adrenaline vehicular kinetic action', count: '8 Titles', color: 'from-white/5 to-[#121212]' }
+                  { tag: '#Cyberpunk & Neo-Noir', desc: 'Rain-slicked streets and neural memory heists', count: `${moviesList.filter(m => m.genres.includes('Cyberpunk')).length} Titles`, color: 'from-[#ff3e00]/20 to-[#121212]' },
+                  { tag: '#HardSciFi & Deep Space', desc: 'Gravitational anomalies and quantum transit', count: `${moviesList.filter(m => m.genres.includes('Sci-Fi')).length} Titles`, color: 'from-white/10 to-[#121212]' },
+                  { tag: '#MindBending Surrealism', desc: 'Non-linear realities and spatial geometry', count: `${moviesList.filter(m => m.genres.includes('Psychological')).length} Titles`, color: 'from-[#ff3e00]/15 to-[#121212]' },
+                  { tag: '#HighOctane Stunts', desc: 'Adrenaline vehicular kinetic action', count: `${moviesList.filter(m => m.genres.includes('Action')).length} Titles`, color: 'from-white/5 to-[#121212]' }
                 ].map((cat) => (
                   <div
                     key={cat.tag}
@@ -202,7 +239,7 @@ export const App: React.FC = () => {
             </div>
           )}
 
-          {currentView === 'movie-detail' && (
+          {currentView === 'movie-detail' && selectedMovie && (
             <MovieDetailView
               movie={selectedMovie}
               onBack={() => setCurrentView('home')}

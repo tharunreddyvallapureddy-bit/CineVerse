@@ -89,7 +89,7 @@ export interface UserSubscription {
   avatar?: string;
   initials?: string;
   joinDate: string;
-  tier: 'CineVerse AI VIP' | 'Pro' | 'Free';
+  tier: 'CineVerse Master Admin' | 'CineVerse AI VIP' | 'Pro' | 'Free' | string;
   status: 'Active' | 'Canceled' | 'Suspended';
 }
 

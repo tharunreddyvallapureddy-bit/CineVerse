@@ -104,6 +104,34 @@ export async function postReviewApi(movieId: string, review: { text: string; rat
   }
 }
 
+export async function publishMovieApi(movieData: any) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/movies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(movieData)
+    });
+    if (!res.ok) throw new Error('Failed to publish movie');
+    return await res.json();
+  } catch (err) {
+    console.warn('API publishMovie failed:', err);
+    return null;
+  }
+}
+
+export async function deleteMovieApi(movieId: string) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/movies/${movieId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to delete movie');
+    return await res.json();
+  } catch (err) {
+    console.warn('API deleteMovie failed:', err);
+    return null;
+  }
+}
+
 // 4. CineAI Neural Search
 export async function searchAIApi(promptQuery: string) {
   try {

@@ -6,28 +6,31 @@ interface HomeViewProps {
   onSelectMovie: (movie: Movie) => void;
   onPlayMovie: (movie: Movie) => void;
   onStartWatchParty: (movie: Movie) => void;
-  activeFilter?: string;
+  movies?: Movie[];
+  onOpenAuthModal?: () => void;
+  onOpenConsole?: () => void;
 }
 
 export const HomeView: React.FC<HomeViewProps> = ({
   onSelectMovie,
   onPlayMovie,
-  onStartWatchParty
+  onStartWatchParty,
+  movies = [],
+  onOpenAuthModal,
+  onOpenConsole
 }) => {
   const [selectedTag, setSelectedTag] = useState<string>('All');
   const [showAIPickTooltip, setShowAIPickTooltip] = useState(false);
-  const [watchlist, setWatchlist] = useState<string[]>(['neon-resonance']);
+  const [watchlist, setWatchlist] = useState<string[]>([]);
   const [hasRsvpd, setHasRsvpd] = useState(false);
 
-  const heroMovie = MOVIES_DATA[0]; // Neon Shadows
-  const continueWatchingMovies = MOVIES_DATA.filter(m => m.progressPercent !== undefined);
-  
-  const allCuratedTags = ['All', '#MindBending', '#Surreal', '#Cyberpunk', '#Noir', '#HardSciFi', '#Atmospheric'];
-  
-  const curatedMovies = MOVIES_DATA.filter(m => {
+  const heroMovie = movies.length > 0 ? movies[0] : null;
+  const curatedMovies = movies.filter(m => {
     if (selectedTag === 'All') return true;
-    return m.tags.includes(selectedTag);
+    return m.tags && m.tags.includes(selectedTag);
   });
+
+  const allCuratedTags = ['All', '#MindBending', '#Surreal', '#Cyberpunk', '#Noir', '#HardSciFi', '#Atmospheric'];
 
   const toggleWatchlist = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -38,222 +41,236 @@ export const HomeView: React.FC<HomeViewProps> = ({
     }
   };
 
+  const continueWatchingMovies = movies.filter(m => m.progressPercent !== undefined);
+
   return (
     <div id="home-view-container" className="pt-18 pb-16 space-y-12">
-      {/* 1. HERO BANNER SECTION */}
-      <section
-        id="hero-banner-section"
-        className="relative w-full min-h-[580px] lg:h-[720px] rounded-2xl overflow-hidden max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 mt-4"
-      >
-        <div className="relative w-full h-full min-h-[560px] rounded-2xl overflow-hidden bg-[#0a0a0a] border border-white/10 shadow-2xl">
-          {/* Hero Backdrop Image */}
-          <img
-            src={heroMovie.backdropImage}
-            alt={heroMovie.title}
-            className="absolute inset-0 w-full h-full object-cover object-center transform scale-105 transition-transform duration-1000"
-            referrerPolicy="no-referrer"
-          />
+      {/* 1. HERO BANNER SECTION / EMPTY CATALOG BANNER */}
+      {heroMovie ? (
+        <section
+          id="hero-banner-section"
+          className="relative w-full min-h-[580px] lg:h-[720px] rounded-2xl overflow-hidden max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 mt-4"
+        >
+          <div className="relative w-full h-full min-h-[560px] rounded-2xl overflow-hidden bg-[#0a0a0a] border border-white/10 shadow-2xl">
+            {/* Hero Backdrop Image */}
+            <img
+              src={heroMovie.backdropImage}
+              alt={heroMovie.title}
+              className="absolute inset-0 w-full h-full object-cover object-center transform scale-105 transition-transform duration-1000"
+              referrerPolicy="no-referrer"
+            />
 
-          {/* Atmospheric Gradients & Rim light */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent"></div>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/75 to-transparent w-full lg:w-2/3"></div>
-          <div className="absolute inset-0 bg-radial from-[#ff3e00]/10 via-transparent to-transparent opacity-40"></div>
+            {/* Atmospheric Gradients & Rim light */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/75 to-transparent w-full lg:w-2/3"></div>
+            <div className="absolute inset-0 bg-radial from-[#ff3e00]/10 via-transparent to-transparent opacity-40"></div>
 
-          {/* Hero Content Overlay */}
-          <div className="absolute inset-0 p-6 sm:p-10 lg:p-14 flex flex-col justify-end max-w-3xl z-10">
-            {/* CineAI Pick Chip with Interactive Explainer */}
-            <div className="relative mb-3 inline-block">
-              <button
-                id="hero-ai-pick-chip"
-                onClick={() => setShowAIPickTooltip(!showAIPickTooltip)}
-                onMouseEnter={() => setShowAIPickTooltip(true)}
-                onMouseLeave={() => setShowAIPickTooltip(false)}
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ff3e00]/20 backdrop-blur-md border border-[#ff3e00]/40 text-white text-xs font-semibold hover:bg-[#ff3e00]/30 transition-all cursor-pointer shadow-[0_0_15px_rgba(255,62,0,0.3)]"
-              >
-                <span className="material-symbols-outlined text-[16px] text-[#ff3e00]">auto_awesome</span>
-                <span>CineAI Top Pick</span>
-                <span className="bg-[#ff3e00] text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
-                  {heroMovie.matchScore}% Match
-                </span>
-              </button>
-
-              {/* Tooltip Popup */}
-              {showAIPickTooltip && (
-                <div className="absolute bottom-full left-0 mb-2 w-80 bg-[#181818]/95 backdrop-blur-xl border border-[#ff3e00]/30 rounded-xl p-3.5 shadow-2xl text-xs text-white/70 z-30 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="flex items-center gap-1.5 text-[#ff3e00] font-semibold mb-1">
-                    <span className="material-symbols-outlined text-[14px]">psychology</span>
-                    Why CineAI picked this for you:
-                  </div>
-                  <p className="leading-relaxed text-[11px] text-white/90">
-                    {heroMovie.aiPickReason}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Title */}
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight mb-2 drop-shadow-md">
-              {heroMovie.title}
-            </h1>
-
-            {/* Subtitle / Season info */}
-            {heroMovie.subtitle && (
-              <p className="text-sm font-semibold text-[#ff3e00] mb-3 tracking-wide">
-                {heroMovie.subtitle}
-              </p>
-            )}
-
-            {/* Badges & Features */}
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <span className="px-2.5 py-0.5 rounded bg-white/5 border border-white/10 text-xs font-mono text-white/80">
-                {heroMovie.year}
-              </span>
-              <span className="px-2.5 py-0.5 rounded bg-white/5 border border-white/10 text-xs font-mono text-white/80">
-                {heroMovie.duration}
-              </span>
-              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded bg-white/5 border border-white/10 text-xs font-semibold text-amber-300">
-                <span className="material-symbols-outlined filled text-[14px]">star</span>
-                {heroMovie.rating}
-              </span>
-              {heroMovie.features.map(f => (
-                <span
-                  key={f}
-                  className="px-2.5 py-0.5 rounded bg-white/5 border border-white/10 text-xs text-white/70"
+            {/* Hero Content Overlay */}
+            <div className="absolute inset-0 p-6 sm:p-10 lg:p-14 flex flex-col justify-end max-w-3xl z-10">
+              {/* CineAI Pick Chip */}
+              <div className="relative mb-3 inline-block">
+                <button
+                  id="hero-ai-pick-chip"
+                  onClick={() => setShowAIPickTooltip(!showAIPickTooltip)}
+                  onMouseEnter={() => setShowAIPickTooltip(true)}
+                  onMouseLeave={() => setShowAIPickTooltip(false)}
+                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ff3e00]/20 backdrop-blur-md border border-[#ff3e00]/40 text-white text-xs font-semibold hover:bg-[#ff3e00]/30 transition-all cursor-pointer shadow-[0_0_15px_rgba(255,62,0,0.3)]"
                 >
-                  {f}
-                </span>
-              ))}
-            </div>
+                  <span className="material-symbols-outlined text-[16px] text-[#ff3e00]">auto_awesome</span>
+                  <span>CineAI Top Pick</span>
+                  <span className="bg-[#ff3e00] text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                    {heroMovie.matchScore}% Match
+                  </span>
+                </button>
 
-            {/* Synopsis */}
-            <p className="text-xs sm:text-sm text-white/70 line-clamp-3 mb-6 leading-relaxed max-w-2xl">
-              {heroMovie.synopsis}
-            </p>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                id="hero-play-now-btn"
-                onClick={() => onPlayMovie(heroMovie)}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white hover:bg-[#ff3e00] text-black hover:text-white font-bold uppercase tracking-wider text-xs shadow-xl transition-all transform hover:scale-105 cursor-pointer"
-              >
-                <span className="material-symbols-outlined filled text-xl">play_arrow</span>
-                <span>Play Now</span>
-              </button>
-
-              <button
-                id="hero-start-party-btn"
-                onClick={() => onStartWatchParty(heroMovie)}
-                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white font-semibold text-xs uppercase tracking-wider backdrop-blur-md transition-all cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-lg">groups</span>
-                <span>Watch Party</span>
-              </button>
-
-              <button
-                id="hero-watchlist-btn"
-                onClick={(e) => toggleWatchlist(heroMovie.id, e)}
-                className={`p-3 rounded-xl border backdrop-blur-md transition-all cursor-pointer ${
-                  watchlist.includes(heroMovie.id)
-                    ? 'bg-[#ff3e00]/20 border-[#ff3e00] text-[#ff3e00]'
-                    : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                }`}
-                title={watchlist.includes(heroMovie.id) ? 'In Watchlist' : 'Add to Watchlist'}
-              >
-                <span className="material-symbols-outlined text-xl">
-                  {watchlist.includes(heroMovie.id) ? 'check' : 'add'}
-                </span>
-              </button>
-
-              <button
-                id="hero-info-btn"
-                onClick={() => onSelectMovie(heroMovie)}
-                className="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white backdrop-blur-md transition-all cursor-pointer"
-                title="View Full Details"
-              >
-                <span className="material-symbols-outlined text-xl">info</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. CONTINUE WATCHING WITH REAL PROGRESS BARS */}
-      <section id="continue-watching-section" className="max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-[#ff3e00]">history</span>
-            <h2 className="text-xl font-bold text-white tracking-tight uppercase">Continue Watching</h2>
-          </div>
-          <span className="text-xs text-white/40">3 items in queue</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {continueWatchingMovies.map((movie) => (
-            <div
-              key={movie.id}
-              id={`continue-card-${movie.id}`}
-              onClick={() => onPlayMovie(movie)}
-              className="group relative rounded-xl bg-[#121212] border border-white/10 hover:border-[#ff3e00]/50 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-[#ff3e00]/10"
-            >
-              {/* Thumbnail backdrop */}
-              <div className="relative aspect-video w-full overflow-hidden bg-[#0a0a0a]">
-                <img
-                  src={movie.backdropImage}
-                  alt={movie.title}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-transparent to-transparent"></div>
-
-                {/* Center Hover Play Icon */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
-                    <span className="material-symbols-outlined filled text-2xl">play_arrow</span>
-                  </div>
-                </div>
-
-                {/* Episodes / Time Remaining chip */}
-                {movie.remainingTime && (
-                  <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-[10px] font-mono text-[#ff3e00] border border-white/10">
-                    {movie.remainingTime}
+                {showAIPickTooltip && (
+                  <div className="absolute bottom-full left-0 mb-2 w-80 bg-[#181818]/95 backdrop-blur-xl border border-[#ff3e00]/30 rounded-xl p-3.5 shadow-2xl text-xs text-white/70 z-30 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="flex items-center gap-1.5 text-[#ff3e00] font-semibold mb-1">
+                      <span className="material-symbols-outlined text-[14px]">psychology</span>
+                      Why CineAI picked this for you:
+                    </div>
+                    <p className="leading-relaxed text-[11px] text-white/90">
+                      {heroMovie.aiPickReason || 'Top rated title.'}
+                    </p>
                   </div>
                 )}
               </div>
 
-              {/* Progress Bar */}
-              <div className="relative w-full h-1.5 bg-white/10">
-                <div
-                  className="h-full bg-gradient-to-r from-[#ff3e00] to-[#ffa17a] transition-all duration-500"
-                  style={{ width: `${movie.progressPercent}%` }}
-                ></div>
+              {/* Title */}
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight mb-2 drop-shadow-md">
+                {heroMovie.title}
+              </h1>
+
+              {heroMovie.subtitle && (
+                <p className="text-sm font-semibold text-[#ff3e00] mb-3 tracking-wide">
+                  {heroMovie.subtitle}
+                </p>
+              )}
+
+              {/* Badges */}
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <span className="px-2.5 py-0.5 rounded bg-white/5 border border-white/10 text-xs font-mono text-white/80">
+                  {heroMovie.year}
+                </span>
+                <span className="px-2.5 py-0.5 rounded bg-white/5 border border-white/10 text-xs font-mono text-white/80">
+                  {heroMovie.duration}
+                </span>
+                {heroMovie.features && heroMovie.features.map(f => (
+                  <span
+                    key={f}
+                    className="px-2.5 py-0.5 rounded bg-white/5 border border-white/10 text-xs text-white/70"
+                  >
+                    {f}
+                  </span>
+                ))}
               </div>
 
-              {/* Info text */}
-              <div className="p-4 flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-white group-hover:text-[#ff3e00] transition-colors truncate">
-                    {movie.title}
-                  </h3>
-                  <p className="text-xs text-white/40 mt-0.5">
-                    {movie.subtitle || `${movie.year} • ${movie.duration}`}
-                  </p>
-                </div>
+              {/* Synopsis */}
+              <p className="text-xs sm:text-sm text-white/70 line-clamp-3 mb-6 leading-relaxed max-w-2xl">
+                {heroMovie.synopsis}
+              </p>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectMovie(movie);
-                  }}
-                  className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
-                  title="Details"
+                  id="hero-play-now-btn"
+                  onClick={() => onPlayMovie(heroMovie)}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white hover:bg-[#ff3e00] text-black hover:text-white font-bold uppercase tracking-wider text-xs shadow-xl transition-all transform hover:scale-105 cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-lg">info</span>
+                  <span className="material-symbols-outlined filled text-xl">play_arrow</span>
+                  <span>Play Now</span>
+                </button>
+
+                <button
+                  id="hero-start-party-btn"
+                  onClick={() => onStartWatchParty(heroMovie)}
+                  className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white font-semibold text-xs uppercase tracking-wider backdrop-blur-md transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-lg">groups</span>
+                  <span>Watch Party</span>
+                </button>
+
+                <button
+                  id="hero-info-btn"
+                  onClick={() => onSelectMovie(heroMovie)}
+                  className="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white backdrop-blur-md transition-all cursor-pointer"
+                  title="View Full Details"
+                >
+                  <span className="material-symbols-outlined text-xl">info</span>
                 </button>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
+      ) : (
+        <section className="max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+          <div className="relative p-8 sm:p-14 rounded-2xl bg-[#121212] border border-white/10 text-center space-y-6 overflow-hidden shadow-2xl">
+            <div className="w-16 h-16 rounded-full bg-[#ff3e00]/15 text-[#ff3e00] flex items-center justify-center mx-auto">
+              <span className="material-symbols-outlined text-3xl">movie_edit</span>
+            </div>
+            <div className="max-w-xl mx-auto space-y-2">
+              <h2 className="text-2xl font-black text-white uppercase tracking-wider">Catalog Ready for Admin Releases</h2>
+              <p className="text-xs text-white/60 leading-relaxed">
+                All mock data has been removed. Admin (<strong className="text-white font-mono">vallapureddytharunreddy6281@gmail.com</strong>) can sign in and upload movie masters via the Studio Console.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+              {onOpenAuthModal && (
+                <button
+                  onClick={onOpenAuthModal}
+                  className="px-6 py-3 rounded-xl bg-white text-black hover:bg-[#ff3e00] hover:text-white font-black text-xs uppercase tracking-wider shadow-lg transition-all cursor-pointer"
+                >
+                  Sign In as Admin
+                </button>
+              )}
+              {onOpenConsole && (
+                <button
+                  onClick={onOpenConsole}
+                  className="px-6 py-3 rounded-xl bg-white/10 text-white hover:bg-white/20 border border-white/20 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-sm">dashboard</span>
+                  <span>Open Studio Console</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 2. CONTINUE WATCHING WITH REAL PROGRESS BARS */}
+      {continueWatchingMovies.length > 0 && (
+        <section id="continue-watching-section" className="max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined text-[#ff3e00]">history</span>
+              <h2 className="text-xl font-bold text-white tracking-tight uppercase">Continue Watching</h2>
+            </div>
+            <span className="text-xs text-white/40">{continueWatchingMovies.length} items in queue</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {continueWatchingMovies.map((movie) => (
+              <div
+                key={movie.id}
+                id={`continue-card-${movie.id}`}
+                onClick={() => onPlayMovie(movie)}
+                className="group relative rounded-xl bg-[#121212] border border-white/10 hover:border-[#ff3e00]/50 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-[#ff3e00]/10"
+              >
+                {/* Thumbnail backdrop */}
+                <div className="relative aspect-video w-full overflow-hidden bg-[#0a0a0a]">
+                  <img
+                    src={movie.backdropImage}
+                    alt={movie.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#121212] via-transparent to-transparent"></div>
+
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                      <span className="material-symbols-outlined filled text-2xl">play_arrow</span>
+                    </div>
+                  </div>
+
+                  {movie.remainingTime && (
+                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-[10px] font-mono text-[#ff3e00] border border-white/10">
+                      {movie.remainingTime}
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative w-full h-1.5 bg-white/10">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#ff3e00] to-[#ffa17a] transition-all duration-500"
+                    style={{ width: `${movie.progressPercent}%` }}
+                  ></div>
+                </div>
+
+                <div className="p-4 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-white group-hover:text-[#ff3e00] transition-colors truncate">
+                      {movie.title}
+                    </h3>
+                    <p className="text-xs text-white/40 mt-0.5">
+                      {movie.subtitle || `${movie.year} • ${movie.duration}`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectMovie(movie);
+                    }}
+                    className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                    title="Details"
+                  >
+                    <span className="material-symbols-outlined text-lg">info</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 3. CINEAI CURATED FOR YOU WITH TAG FILTERING */}
       <section id="cineai-curated-section" className="max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-8">

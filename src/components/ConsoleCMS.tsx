@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { CMS_RECENT_ITEMS } from '../data/mockData';
-import { CMSItem } from '../types';
+import { publishMovieApi } from '../services/api';
+import { Movie, CMSItem } from '../types';
 
-export const ConsoleCMS: React.FC = () => {
+interface ConsoleCMSProps {
+  onAddMovie?: (movie: Movie) => void;
+}
+
+export const ConsoleCMS: React.FC<ConsoleCMSProps> = ({ onAddMovie }) => {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [items, setItems] = useState<CMSItem[]>(CMS_RECENT_ITEMS);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -13,9 +18,9 @@ export const ConsoleCMS: React.FC = () => {
   const [year, setYear] = useState('2025');
   const [selectedGenres, setSelectedGenres] = useState<string[]>(['Sci-Fi', 'Cyberpunk']);
   const [synopsis, setSynopsis] = useState('');
+  const [posterUrl, setPosterUrl] = useState('');
   const [audioFormat, setAudioFormat] = useState('Dolby Atmos Spatial');
   const [resolution, setResolution] = useState('4K HDR10+');
-  const [aiAutoFilled, setAiAutoFilled] = useState(false);
 
   const availableGenres = ['Sci-Fi', 'Cyberpunk', 'Noir', 'Thriller', 'Mystery', 'Action', 'Psychological', 'Fantasy', 'Horror', 'Documentary'];
 
@@ -35,34 +40,78 @@ export const ConsoleCMS: React.FC = () => {
       setYear('2025');
       setSelectedGenres(['Sci-Fi', 'Thriller', 'Cyberpunk']);
       setSynopsis('When a temporal communications array intercepts audio recordings from 50 years in the future, an acoustic forensics analyst discovers her own voice among the casualties.');
+      setPosterUrl('https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80');
       setAudioFormat('Dolby Atmos 7.1.4');
       setResolution('4K HDR10+ / Dolby Vision');
-      setAiAutoFilled(true);
       setIsSubmitting(false);
-    }, 600);
+    }, 500);
   };
 
-  const handlePublishContent = (e: React.FormEvent) => {
+  const handlePublishContent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+
+    setIsSubmitting(true);
+
+    const defaultPoster = posterUrl.trim() || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80';
+
+    const moviePayload: any = {
+      id: `movie-${Date.now()}`,
+      title: title.trim(),
+      subtitle: `${year} • ${runtime || '2h 00m'}`,
+      year: year || '2025',
+      duration: runtime || '2h 00m',
+      rating: '5.0',
+      ratingCount: '1',
+      matchScore: 98,
+      type: selectedGenres.includes('Series') ? 'series' : 'movie',
+      genres: selectedGenres.length > 0 ? selectedGenres : ['Sci-Fi'],
+      tags: ['#4KMaster', '#StudioRelease'],
+      features: ['4K HDR', audioFormat],
+      posterImage: defaultPoster,
+      backdropImage: defaultPoster,
+      synopsis: synopsis.trim() || 'Official release published by Studio Admin.',
+      aiPickReason: 'Featured release uploaded by Studio Admin.',
+      progressPercent: 0,
+      remainingTime: runtime || '2h 00m',
+      cast: [],
+      mood: {
+        tension: 88,
+        action: 80,
+        visuals: 95,
+        mystery: 85,
+        pacing: 75,
+        description: 'High sensory neural cinema uploaded by Studio Admin.'
+      },
+      audienceConsensus: 'Official Studio Master release.'
+    };
+
+    // Call backend API
+    const res = await publishMovieApi(moviePayload);
+    const publishedMovie = res?.movie || moviePayload;
+
+    if (onAddMovie) {
+      onAddMovie(publishedMovie);
+    }
 
     const newItem: CMSItem = {
       id: `cms-${Date.now()}`,
       title: title.trim(),
       status: 'Live',
       genre: selectedGenres.join(', ') || 'Sci-Fi',
-      duration: runtime || '2h 05m',
-      poster: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDlTMuHkGqwQ8HGFDbzr0TzJBoqrkFDBnBTvFDDXCkdbzTmdbbctZkU81CTR5LA-XmJscCxInPg3OAUoIN2oQf_4CjvZvzLlfQBdAr6Hmx6Q7UfaqrLRw08GAcityGLLKCu69q1V3xM2a9BU4TuvGguMXVB4o-EvDq0c2A4wy8_dU0neeL16TtxOsesFHbDeBR7jmELMfeQcLrHkS7uwS3KwtthyTiZDx5i3tDlGWB4Zv6TJbBXxdeE'
+      duration: runtime || '2h 00m',
+      poster: defaultPoster
     };
 
     setItems([newItem, ...items]);
-    // Reset Form
     setTitle('');
     setRuntime('');
     setSynopsis('');
-    setAiAutoFilled(false);
+    setPosterUrl('');
+    setIsSubmitting(false);
     setCurrentStep(1);
-    alert('Master media ingested and synchronized to global edge nodes!');
+
+    alert(`Successfully published "${publishedMovie.title}" to the global catalog!`);
   };
 
   return (
